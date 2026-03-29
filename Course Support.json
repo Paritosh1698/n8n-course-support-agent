@@ -1,0 +1,251 @@
+{
+  "name": "Course Support",
+  "nodes": [
+    {
+      "parameters": {
+        "public": true,
+        "initialMessages": "Hello and welcome to the Leland course!",
+        "options": {
+          "title": "Hi there, welcome to the course",
+          "responseMode": "responseNodes"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        0
+      ],
+      "id": "3b1454a4-0291-4835-95f6-d4cdeae96d36",
+      "name": "When chat message received",
+      "webhookId": "ef86a3d9-af2e-4822-bc51-458b5f95acb4"
+    },
+    {
+      "parameters": {
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are a helpful assistant helping users with selecting the right courses on the Leland platform, along with answering any questions they might have.\n\nIf the user message includes inappropriate or strong language, update vibeCheck as False, otherwise, keep vibeCheck as True."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "51855bbc-bbf9-48ab-87f2-21744ec884d6",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('When chat message received').item.json.sessionId }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        304,
+        176
+      ],
+      "id": "7cfa749c-156d-46e6-88e4-809a94dbc7e5",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n\t\"answer\": \"the answer to user's question\",\n\t\"vibeCheck\": \"true\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        448,
+        176
+      ],
+      "id": "c4d59d4d-c047-49d3-b4ec-68e1d15563ac",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "9ba05895-1f26-4996-afb6-68b35f841c49",
+              "leftValue": "={{ $json.output.vibeCheck }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        560,
+        0
+      ],
+      "id": "3ea00223-8a0d-4462-bee9-57a5a2871dfc",
+      "name": "vibeCheck passed"
+    },
+    {
+      "parameters": {
+        "message": "I cannot respond to queries with strong language.",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chat",
+      "typeVersion": 1.3,
+      "position": [
+        768,
+        96
+      ],
+      "id": "b8e659ce-4ce8-4c99-9c6a-5425f003873d",
+      "name": "Offensive I/P",
+      "webhookId": "5414ec9e-5117-4406-a75b-4af11789d2cd"
+    },
+    {
+      "parameters": {
+        "message": "={{ $json.output.answer }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chat",
+      "typeVersion": 1.3,
+      "position": [
+        768,
+        -96
+      ],
+      "id": "c8f963a5-562f-481f-ac3b-082a221fb601",
+      "name": "Safe I/P",
+      "webhookId": "90c7347d-779c-42d0-9f4a-e440f706e4a8"
+    },
+    {
+      "parameters": {
+        "model": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "options": {
+          "temperature": 0.7
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        160,
+        176
+      ],
+      "id": "2931157f-9da8-4ad8-bb02-c0a89918dd5a",
+      "name": "Groq FM",
+      "credentials": {
+        "groqApi": {
+          "id": "Rg9ImLRSIWSFheV5",
+          "name": "Groq account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "vibeCheck passed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "vibeCheck passed": {
+      "main": [
+        [
+          {
+            "node": "Safe I/P",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Offensive I/P",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq FM": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Safe I/P": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "executionTimeout": -1,
+    "availableInMCP": false
+  },
+  "versionId": "c714a796-2f4e-4eab-bf65-f655b82eb42f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "55012c2964071ce59177e91bba2a2e5e9fdbfc58bf966852fb0ab063876e3f95"
+  },
+  "id": "MOENEN5NcsEfrCLn",
+  "tags": []
+}
